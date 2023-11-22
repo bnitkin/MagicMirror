@@ -342,6 +342,6 @@ function drawMoonSegment(canvas, left, phase, color) {
 	// Right half-circle
 	else ctx.arc(radius, radius, radius, 0.5 * Math.PI, 1.5 * Math.PI, true);
 
-	for (var y of segments) ctx.lineTo(radius + Math.sqrt(radius ** 2 - (y - radius) ** 2) * phase, y);
+	for (var y of segments) ctx.lineTo(radius - Math.sqrt(radius ** 2 - (y - radius) ** 2) * phase, y);
 	ctx.fill();
 }
