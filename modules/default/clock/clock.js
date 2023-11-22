@@ -208,11 +208,23 @@ Module.register("clock", {
 				moonSet = nextMoonTimes.set;
 			}
 			const isVisible = now.isBetween(moonRise, moonSet) || moonTimes.alwaysUp === true;
-			const illuminatedFractionString = `${Math.round(moonIllumination.fraction * 100)}%`;
 			moonWrapper.innerHTML =
-				`<span class="${isVisible ? "bright" : ""}"><i class="fas fa-moon" aria-hidden="true"></i> ${illuminatedFractionString}</span>` +
+				`<span><canvas width=20 height=20 id="moon-phase"></canvas> ${moonIllumination.phase < 0.5 ? "Waxing" : "Waning"}</span>` +
 				`<span><i class="fas fa-arrow-up" aria-hidden="true"></i> ${moonRise ? formatTime(this.config, moonRise) : "..."}</span>` +
 				`<span><i class="fas fa-arrow-down" aria-hidden="true"></i> ${moonSet ? formatTime(this.config, moonSet) : "..."}</span>`;
+
+			const canvas = moonWrapper.querySelector("canvas");
+
+			// Phase describes the current lunar phase per:
+			// https://github.com/mourner/suncalc#moon-illumination
+			if (moonIllumination.phase < 0.5) {
+				drawMoonSegment(canvas, true, moonIllumination.phase, "#222");
+				drawMoonSegment(canvas, false, moonIllumination.phase, "#ff7");
+			} else {
+				drawMoonSegment(canvas, true, moonIllumination.phase - 0.5, "#ff7");
+				drawMoonSegment(canvas, false, moonIllumination.phase - 0.5, "#222");
+			}
+
 			digitalWrapper.appendChild(moonWrapper);
 		}
 
@@ -304,3 +316,32 @@ Module.register("clock", {
 		return wrapper;
 	}
 });
+
+/**
+ * drawMoonSegment draws semicircles to represent the lit/unlit portions of the moon
+ *
+ * @param {object} canvas - The HTML canvas to draw onto
+ * @param {boolean} left - true to draw the left arc; false to draw the right
+ * @param {number} phase - the current moon phase, from suncalc.js
+ * @param {string} color - the color to use for the arc
+ */
+function drawMoonSegment(canvas, left, phase, color) {
+	const ctx = canvas.getContext("2d");
+	const radius = 10;
+	// Provide more detail near the top and bottom edges,
+	// where curvature is most noticable
+	const segments = [0.5, 1, 2, 4, 8, 12, 16, 18, 19, 19.5];
+	phase = (phase - 0.25) * 4;
+
+	ctx.beginPath();
+	ctx.fillStyle = color;
+
+	if (left)
+		// Left half-circle
+		ctx.arc(radius, radius, radius, 0.5 * Math.PI, 1.5 * Math.PI);
+	// Right half-circle
+	else ctx.arc(radius, radius, radius, 0.5 * Math.PI, 1.5 * Math.PI, true);
+
+	for (var y of segments) ctx.lineTo(radius + Math.sqrt(radius ** 2 - (y - radius) ** 2) * phase, y);
+	ctx.fill();
+}
